@@ -1,30 +1,39 @@
 package banking03단계;
 
-public abstract class Account {
-    protected String accountNum;
+import java.io.Serializable;
+
+// Abstract class for inheritance only
+public abstract class Account implements Serializable {
+    protected String accNumber;
     protected String name;
     protected int balance;
 
-    public Account(String accountNum, String name, int balance) {
-        this.accountNum = accountNum;
+    public Account(String accNumber, String name, int balance) {
+        this.accNumber = accNumber;
         this.name = name;
         this.balance = balance;
     }
 
-    public String getAccountNum() {
-        return accountNum;
-    }
+    // Abstract deposit method to be implemented differently in each subclass
+    public abstract void deposit(int amount);
 
-    public abstract void deposit(int amount); // 추상 메서드로 변경
-
+    // Common withdrawal logic (can be overridden if needed)
     public void withdraw(int amount) {
         balance -= amount;
     }
 
     public void showAccInfo() {
-        System.out.println("계좌번호: " + accountNum);
-        System.out.println("이름: " + name);
-        System.out.println("잔액: " + balance);
+        System.out.println("Account Number: " + accNumber);
+        System.out.println("Name: " + name);
+        System.out.println("Balance: " + balance);
         System.out.println("---------------------------");
+    }
+
+    public String getAccNumber() {
+        return accNumber;
+    }
+
+    public int getBalance() {
+        return balance;
     }
 }

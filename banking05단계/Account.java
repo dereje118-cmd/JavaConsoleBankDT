@@ -3,45 +3,55 @@ package banking05단계;
 import java.io.Serializable;
 import java.util.Objects;
 
-// 추상 클래스 + 직렬화
+/**
+ * Account (추상클래스)
+ * - 공통 속성(계좌번호, 이름, 잔액)
+ * - 입금/출금의 기본 형식 정의
+ * - 직렬화 가능
+ */
 public abstract class Account implements Serializable {
-    private static final long serialVersionUID = 1L;
-
-    protected String accNum;
+    protected String accountNum;
     protected String name;
     protected int balance;
 
-    public Account(String accNum, String name, int balance) {
-        this.accNum = accNum;
+    public Account(String accountNum, String name, int balance) {
+        this.accountNum = accountNum;
         this.name = name;
         this.balance = balance;
     }
 
-    public String getAccNum() {
-        return accNum;
+    public String getAccountNum() {
+        return accountNum;
     }
 
-    public abstract void deposit(int money);
-
-    public void withdraw(int money) {
-        balance -= money;
+    public String getName() {
+        return name;
     }
 
-    @Override
-    public String toString() {
-        return String.format("계좌번호:%s, 이름:%s, 잔액:%d", accNum, name, balance);
+    public int getBalance() {
+        return balance;
     }
 
-    // HashSet 중복 판별용 - 계좌번호 기준
-    @Override
-    public int hashCode() {
-        return Objects.hash(accNum);
+    public abstract void deposit(int amount);
+    public abstract void withdraw(int amount);
+
+    public void showAccInfo() {
+        System.out.println("계좌번호: " + accountNum);
+        System.out.println("이름: " + name);
+        System.out.println("잔액: " + balance);
     }
 
+    // HashSet 중복방지를 위한 equals, hashCode 재정의
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof Account acc)
-            return this.accNum.equals(acc.accNum);
-        return false;
+        if (this == obj) return true;
+        if (!(obj instanceof Account)) return false;
+        Account acc = (Account) obj;
+        return accountNum.equals(acc.accountNum);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(accountNum);
     }
 }

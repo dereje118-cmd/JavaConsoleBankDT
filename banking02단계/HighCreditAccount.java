@@ -1,42 +1,25 @@
 package banking02단계;
 
 public class HighCreditAccount extends NormalAccount {
-    private String creditGrade; // 신용등급 (A, B, C)
-    private double addInterest; // 추가이율
+    private int creditRate; // extra interest for credit grade
 
-    public HighCreditAccount(String accountNum, String name, int balance, double interest, String grade) {
-        super(accountNum, name, balance, interest);
-        this.creditGrade = grade.toUpperCase();
-
-        switch (creditGrade) {
-            case "A":
-                addInterest = 7.0;
-                break;
-            case "B":
-                addInterest = 4.0;
-                break;
-            case "C":
-                addInterest = 2.0;
-                break;
-            default:
-                addInterest = 0.0;
-        }
+    public HighCreditAccount(String accNumber, String name, int balance, int interestRate, int creditRate) {
+        super(accNumber, name, balance, interestRate);
+        this.creditRate = creditRate;
     }
 
+    // Override deposit to include both base and extra credit interest
     @Override
     public void deposit(int amount) {
-        // 신용계좌: 잔고 + (잔고 * 기본이자) + (잔고 * 추가이자) + 입금액
-        int baseInterest = (int)(balance * super.getInterest() / 100);
-        int extraInterest = (int)(balance * addInterest / 100);
-        balance = balance + baseInterest + extraInterest + amount;
+        int interest = (balance * (super.interestRate + creditRate)) / 100;
+        balance += interest + amount;
     }
 
     @Override
     public void showAccInfo() {
-        System.out.println("[신용신뢰계좌]");
+        System.out.println("[High Credit Account]");
         super.showAccInfo();
-        System.out.println("신용등급: " + creditGrade);
-        System.out.println("추가이자율: " + addInterest + "%");
-        System.out.println("---------------------------");
+        System.out.println("Credit Grade Bonus: " + creditRate + "%");
+        System.out.println();
     }
 }

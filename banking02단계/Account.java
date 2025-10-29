@@ -16,7 +16,8 @@ public class Account {
     }
 
     public void deposit(int amount) {
-        balance += amount;  // 기본 계좌는 이자 계산 없음
+    	//Default: no  interest logic here
+        balance += amount;  // 기본 계좌는 이자 계산 없음 =>
     }
 
     public void withdraw(int amount) {

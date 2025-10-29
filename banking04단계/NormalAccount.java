@@ -1,28 +1,26 @@
 package banking04단계;
 
 public class NormalAccount extends Account {
-    private int interestRate;
+    private double interestRate; // 기본이자율
 
-    public NormalAccount(String accNum, String name, int balance, int interestRate) {
-        super(accNum, name, balance);
-        this.setInterestRate(interestRate);
+    public NormalAccount(String accountNumber, String name, int balance, double interestRate) {
+        super(accountNumber, name, balance);
+        this.interestRate = interestRate;
     }
 
     @Override
-    public void deposit(int money) {
-        balance += money + (balance * getInterestRate() / 100);
+    public void deposit(int amount) {
+        if (amount < 0) {
+            System.out.println("음수를 입금할 수 없습니다.");
+            return;
+        }
+
+        if (amount % 500 != 0) {
+            System.out.println("입금은 500원 단위로만 가능합니다.");
+            return;
+        }
+
+        balance += (int)(balance * (interestRate / 100)) + amount;
+        System.out.println("입금 완료. 현재 잔액: " + balance + "원");
     }
-
-    @Override
-    public String toString() {
-        return "[보통예금계좌] " + super.toString() + ", 기본이자:" + getInterestRate() + "%";
-    }
-
-	public int getInterestRate() {
-		return interestRate;
-	}
-
-	public void setInterestRate(int interestRate) {
-		this.interestRate = interestRate;
-	}
 }

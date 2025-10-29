@@ -3,209 +3,191 @@ package banking05단계;
 import java.io.*;
 import java.util.*;
 
-interface MenuChoice {
-    int MAKE = 1, DEPOSIT = 2, WITHDRAW = 3, INQUIRE = 4, DELETE = 5, EXIT = 6;
-}
-
-public class AccountManager implements MenuChoice {
+/**
+ * AccountManager
+ * - 계좌관리, 입출금, 직렬화, 자동저장 기능 포함
+ */
+public class AccountManager implements ICustomDefine {
     private Set<Account> accSet = new HashSet<>();
-    private final Scanner sc = new Scanner(System.in);
-    private final String FILE_NAME = "AccountInfo.obj";
+    private Scanner sc = new Scanner(System.in);
+    private static final String FILE_NAME = "AccountInfo.obj";
+    private AutoSaver autoSaver;
+    private boolean autoSaveEnabled = false;
 
-    // 생성자에서 기존 데이터 불러오기
     public AccountManager() {
-        loadAccountInfo();
+        loadAccounts();
     }
 
-    // 프로그램 메뉴 루프
     public void showMenu() {
         while (true) {
-            System.out.println("\n=== 계좌관리 프로그램 ===");
-            System.out.println("1. 계좌개설");
-            System.out.println("2. 입금");
-            System.out.println("3. 출금");
-            System.out.println("4. 전체계좌정보출력");
-            System.out.println("5. 계좌삭제");
-            System.out.println("6. 프로그램종료");
-            System.out.print("선택: ");
-
             try {
+                System.out.println("\n=== 계좌관리 프로그램 ===");
+                System.out.println("1. 계좌개설");
+                System.out.println("2. 입금");
+                System.out.println("3. 출금");
+                System.out.println("4. 전체계좌정보출력");
+                System.out.println("5. 프로그램종료");
+                System.out.println("6. 자동저장 ON/OFF");
+                System.out.print("선택: ");
+
                 int choice = Integer.parseInt(sc.nextLine());
+                if (choice < 1 || choice > 6)
+                    throw new MenuSelectException("⚠ 1~6 사이의 숫자만 입력 가능합니다.");
+
                 switch (choice) {
-                    case MAKE -> makeAccount();
-                    case DEPOSIT -> depositMoney();
-                    case WITHDRAW -> withdrawMoney();
-                    case INQUIRE -> showAccInfo();
-                    case DELETE -> deleteAccount();
-                    case EXIT -> {
-                        saveAccountInfo();
-                        System.out.println("프로그램을 종료합니다.");
+                    case MAKE: makeAccount(); break;
+                    case DEPOSIT: depositMoney(); break;
+                    case WITHDRAW: withdrawMoney(); break;
+                    case INQUIRE: showAccInfo(); break;
+                    case EXIT:
+                        exitProgram();
                         return;
-                    }
-                    default -> System.out.println("잘못된 선택입니다.");
+                    case 6:
+                        toggleAutoSave();
+                        break;
                 }
+            } catch (MenuSelectException e) {
+                System.out.println(e.getMessage());
             } catch (NumberFormatException e) {
-                System.out.println("숫자만 입력 가능합니다.");
-            } catch (Exception e) {
-                System.out.println("오류: " + e.getMessage());
+                System.out.println("⚠ 메뉴선택은 숫자만 가능합니다!");
             }
         }
     }
 
-    // ---------- 계좌개설 ----------
     private void makeAccount() {
-        System.out.println("[계좌개설]");
-        System.out.print("1. 보통계좌 | 2. 신용계좌 선택: ");
+        System.out.println("1. 보통예금계좌  2. 신용신뢰계좌");
         int sel = Integer.parseInt(sc.nextLine());
 
         System.out.print("계좌번호: ");
         String accNum = sc.nextLine();
         System.out.print("이름: ");
         String name = sc.nextLine();
-        System.out.print("잔액: ");
+        System.out.print("입금액: ");
         int balance = Integer.parseInt(sc.nextLine());
-        System.out.print("기본이자율(%): ");
-        int interest = Integer.parseInt(sc.nextLine());
 
-        Account newAcc = null;
-
+        Account acc = null;
         if (sel == 1) {
-            newAcc = new NormalAccount(accNum, name, balance, interest);
-        } else {
+            System.out.print("기본이자율(%): ");
+            int interest = Integer.parseInt(sc.nextLine());
+            acc = new NormalAccount(accNum, name, balance, interest);
+        } else if (sel == 2) {
+            System.out.print("기본이자율(%): ");
+            int interest = Integer.parseInt(sc.nextLine());
             System.out.print("신용등급(A, B, C): ");
-            char grade = sc.nextLine().toUpperCase().charAt(0);
-            newAcc = new HighCreditAccount(accNum, name, balance, interest, grade);
+            String grade = sc.nextLine();
+            acc = new HighCreditAccount(accNum, name, balance, interest, grade);
         }
 
-        // 중복 처리
-        if (!accSet.add(newAcc)) {
+        if (accSet.contains(acc)) {
             System.out.print("중복계좌발견됨. 덮어쓸까요?(y/n): ");
             String ans = sc.nextLine();
             if (ans.equalsIgnoreCase("y")) {
-                accSet.remove(newAcc);
-                accSet.add(newAcc);
-                System.out.println("덮어쓰기 완료.");
+                accSet.remove(acc);
+                accSet.add(acc);
+                System.out.println(">> 기존 계좌 덮어쓰기 완료.");
             } else {
-                System.out.println("기존 정보 유지.");
+                System.out.println(">> 기존 계좌 유지됨.");
             }
         } else {
-            System.out.println("계좌개설 완료!");
+            accSet.add(acc);
+            System.out.println(">> 계좌 개설 완료.");
         }
     }
 
-    // ---------- 입금 ----------
     private void depositMoney() {
-        System.out.print("입금할 계좌번호: ");
+        System.out.print("계좌번호: ");
         String accNum = sc.nextLine();
         Account acc = findAccount(accNum);
 
         if (acc == null) {
-            System.out.println("계좌를 찾을 수 없습니다.");
+            System.out.println("⚠ 계좌를 찾을 수 없습니다.");
             return;
         }
 
-        System.out.print("입금금액: ");
-        int money = Integer.parseInt(sc.nextLine());
-
-        if (money < 0 || money % 500 != 0) {
-            System.out.println("입금은 0원 이상, 500원 단위로만 가능합니다.");
-            return;
+        try {
+            System.out.print("입금액: ");
+            int amount = Integer.parseInt(sc.nextLine());
+            acc.deposit(amount);
+            System.out.println(">> 입금 완료.");
+        } catch (NumberFormatException e) {
+            System.out.println("⚠ 금액은 숫자로 입력하세요!");
         }
-
-        acc.deposit(money);
-        System.out.println("입금완료.");
     }
 
-    // ---------- 출금 ----------
     private void withdrawMoney() {
-        System.out.print("출금할 계좌번호: ");
+        System.out.print("계좌번호: ");
         String accNum = sc.nextLine();
         Account acc = findAccount(accNum);
 
         if (acc == null) {
-            System.out.println("계좌를 찾을 수 없습니다.");
+            System.out.println("⚠ 계좌를 찾을 수 없습니다.");
             return;
         }
 
-        System.out.print("출금금액: ");
-        int money = Integer.parseInt(sc.nextLine());
-
-        if (money < 0 || money % 1000 != 0) {
-            System.out.println("출금은 1000원 단위로만 가능합니다.");
-            return;
-        }
-
-        if (acc.balance < money) {
-            System.out.print("잔고가 부족합니다. 금액전체를 출금할까요?(y/n): ");
-            String ans = sc.nextLine();
-            if (ans.equalsIgnoreCase("y")) {
-                acc.withdraw(acc.balance);
-                System.out.println("전체 금액 출금 완료.");
-            } else {
-                System.out.println("출금 취소.");
-            }
-        } else {
-            acc.withdraw(money);
-            System.out.println("출금 완료.");
+        try {
+            System.out.print("출금액: ");
+            int amount = Integer.parseInt(sc.nextLine());
+            acc.withdraw(amount);
+        } catch (NumberFormatException e) {
+            System.out.println("⚠ 금액은 숫자로 입력하세요!");
         }
     }
 
-    // ---------- 계좌검색 ----------
+    private void showAccInfo() {
+        for (Account acc : accSet) {
+            acc.showAccInfo();
+        }
+        System.out.println("총 계좌수: " + accSet.size());
+    }
+
     private Account findAccount(String accNum) {
         for (Account acc : accSet) {
-            if (acc.getAccNum().equals(accNum))
-                return acc;
+            if (acc.getAccountNum().equals(accNum)) return acc;
         }
         return null;
     }
 
-    // ---------- 전체출력 ----------
-    private void showAccInfo() {
-        System.out.println("\n[전체 계좌정보]");
-        if (accSet.isEmpty()) {
-            System.out.println("등록된 계좌가 없습니다.");
-            return;
+    private void toggleAutoSave() {
+        if (!autoSaveEnabled) {
+            autoSaver = new AutoSaver(accSet);
+            autoSaver.setDaemon(true);
+            autoSaver.start();
+            autoSaveEnabled = true;
+            System.out.println("✅ 자동저장 기능이 켜졌습니다.");
+        } else {
+            autoSaver.stopSaver();
+            autoSaveEnabled = false;
+            System.out.println("🛑 자동저장 기능이 꺼졌습니다.");
         }
-        for (Account acc : accSet)
-            System.out.println(acc);
     }
 
-    // ---------- 계좌삭제 ----------
-    private void deleteAccount() {
-        System.out.print("삭제할 계좌번호: ");
-        String accNum = sc.nextLine();
-        Account acc = findAccount(accNum);
-
-        if (acc == null) {
-            System.out.println("해당 계좌가 없습니다.");
-            return;
-        }
-
-        accSet.remove(acc);
-        System.out.println("계좌가 삭제되었습니다.");
+    private void exitProgram() {
+        System.out.println("프로그램을 종료합니다.");
+        saveAccounts();
+        if (autoSaver != null) autoSaver.stopSaver();
     }
 
-    // ---------- 파일 저장 ----------
-    private void saveAccountInfo() {
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(FILE_NAME))) {
-            out.writeObject(accSet);
-            System.out.println("계좌정보가 파일로 저장되었습니다.");
+    private void saveAccounts() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(FILE_NAME))) {
+            oos.writeObject(accSet);
+            System.out.println(">> 계좌정보를 파일에 저장했습니다.");
         } catch (IOException e) {
-            System.out.println("저장 중 오류: " + e.getMessage());
+            System.out.println("⚠ 저장 중 오류 발생!");
         }
     }
 
-    // ---------- 파일 불러오기 ----------
     @SuppressWarnings("unchecked")
-    private void loadAccountInfo() {
+    private void loadAccounts() {
         File file = new File(FILE_NAME);
-        if (!file.exists()) return;
-
-        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(file))) {
-            accSet = (HashSet<Account>) in.readObject();
-            System.out.println("이전 계좌정보를 불러왔습니다. (" + accSet.size() + "개)");
+        if (!file.exists()) {
+            System.out.println(">> 기존 계좌파일이 없습니다.");
+            return;
+        }
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+            accSet = (Set<Account>) ois.readObject();
+            System.out.println(">> " + accSet.size() + "개의 계좌정보를 불러왔습니다.");
         } catch (Exception e) {
-            System.out.println("불러오기 중 오류: " + e.getMessage());
+            System.out.println("⚠ 파일 로딩 오류!");
         }
     }
 }
